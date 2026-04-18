@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'database_helper.dart';
 import 'coin_page.dart';
@@ -28,10 +31,46 @@ class _ProfilePageState extends State<ProfilePage> {
   String username = "";
   bool isLoading = true;
 
+  File? _image;
+  final ImagePicker picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
     loadProfile();
+    loadImage(); // ✅ LOAD FOTO SAAT BUKA APP
+  }
+
+  /// ================= LOAD FOTO PROFIL =================
+  Future<void> loadImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString("profile_image_${widget.email}");
+
+    if (path != null && File(path).existsSync()) {
+      setState(() {
+        _image = File(path);
+      });
+    }
+  }
+
+  /// ================= PICK + SAVE FOTO =================
+  Future<void> pickImage() async {
+    final pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      final file = File(pickedFile.path);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        "profile_image_${widget.email}",
+        pickedFile.path,
+      );
+
+      setState(() {
+        _image = file;
+      });
+    }
   }
 
   Future<void> loadProfile() async {
@@ -151,19 +190,27 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               children: [
 
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.3),
-                  ),
-                  child: const CircleAvatar(
-                    radius: 45,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: 55,
-                      color: Color(0xFF6FBF8F),
+                /// ================= FOTO PROFIL (CLICKABLE + SAVE) =================
+                GestureDetector(
+                  onTap: pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.3),
+                    ),
+                    child: CircleAvatar(
+                      radius: 45,
+                      backgroundColor: Colors.white,
+                      backgroundImage:
+                          _image != null ? FileImage(_image!) : null,
+                      child: _image == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 55,
+                              color: Color(0xFF6FBF8F),
+                            )
+                          : null,
                     ),
                   ),
                 ),

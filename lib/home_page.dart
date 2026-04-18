@@ -19,6 +19,7 @@ import 'test_intro_page.dart';
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 class HomePage extends StatefulWidget {
   final String email;
+  
 
   const HomePage({super.key, required this.email});
 
@@ -46,6 +47,7 @@ void didPopNext() {
 
 
   int totalCoin = 0;
+  String username = "";
 
   @override
 void initState() {
@@ -61,9 +63,31 @@ void initState() {
 Future<void> loadCoin() async {
   final coin = await DatabaseHelper.instance.getTotalPoint(widget.email);
 
+  final db = await DatabaseHelper.instance.database;
+
+  final user = await db.query(
+    'users',
+    where: 'email = ?',
+    whereArgs: [widget.email],
+    limit: 1,
+  );
+
+  String tempUsername = widget.email.split("@")[0];
+
+  if (user.isNotEmpty) {
+    final data = user.first;
+    final dbUsername = data['username'];
+
+    if (dbUsername != null && dbUsername.toString().trim().isNotEmpty) {
+      tempUsername = dbUsername.toString();
+    }
+  }
+
   if (!mounted) return;
+
   setState(() {
     totalCoin = coin;
+    username = tempUsername; // 🔥 INI PENTING
   });
 }
   String getDateInfo() {
@@ -211,8 +235,8 @@ builder: (_) => MapsPage(email: widget.email),          ),
               const SizedBox(height: 5),
 
               Text(
-                widget.email,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                username,
+                style: const TextStyle(color: Colors.white70, fontSize: 18),
               ),
 
               const SizedBox(height: 15),
