@@ -275,7 +275,7 @@ class _ActivityReportPageState extends State<ActivityReportPage> {
       backgroundColor: const Color(0xfff5f7fb),
 
       appBar: AppBar(
-        title: const Text("Laporan Jurnal"),
+        title: const Text("Laporan Data"),
         backgroundColor: const Color(0xFF6FBF8F),
         actions: [
           IconButton(

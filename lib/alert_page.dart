@@ -151,7 +151,7 @@ class _AlertPageState extends State<AlertPage> {
 
       appBar: AppBar(
         backgroundColor: const Color(0xFF6FBF8F),
-        title: const Text("Analisis Mental"),
+        title: const Text("Peringatan Mood"),
       ),
 
       body: loading

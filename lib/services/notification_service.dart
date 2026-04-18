@@ -21,13 +21,26 @@ class NotificationService {
       onDidReceiveNotificationResponse: (response) async {
         final payload = response.payload;
 
-        if (payload != null) {
+        if (payload != null && payload.isNotEmpty) {
           final Uri url = Uri.parse(payload);
           await launchUrl(url, mode: LaunchMode.externalApplication);
         }
       },
     );
 
+    // 🔥 FIX PENTING: HANDLE APP DIBUKA DARI NOTIF (TERMINATED)
+    final details = await _notif.getNotificationAppLaunchDetails();
+
+    if (details?.didNotificationLaunchApp ?? false) {
+      final payload = details!.notificationResponse?.payload;
+
+      if (payload != null && payload.isNotEmpty) {
+        final Uri url = Uri.parse(payload);
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    }
+
+    // 🔥 REQUEST PERMISSION (ANDROID 13+)
     await Permission.notification.request();
   }
 
@@ -49,9 +62,11 @@ class NotificationService {
           channelDescription: 'Notifikasi instan aplikasi',
           importance: Importance.max,
           priority: Priority.high,
-
-          // 🔥 ICON APK KAMU (taruh di android/app/src/main/res/drawable)
           icon: 'hearts',
+
+          // 🔥 biar lebih responsive
+          playSound: true,
+          enableVibration: true,
         ),
       ),
       payload: payload,
@@ -107,7 +122,7 @@ class NotificationService {
     return scheduled;
   }
 
-  // ================= DAILY REMINDER (3x sehari) =================
+  // ================= DAILY REMINDER =================
   static Future<void> setupDailyReminders() async {
     await scheduleDaily(
       id: 1,
@@ -148,8 +163,7 @@ class NotificationService {
     await showInstant(
       id: 101,
       title: "🌿 Kami di sini untuk kamu",
-      body:
-          "Kamu terlihat lelah akhir-akhir ini. Istirahat sebentar ya 💚",
+      body: "Kamu terlihat lelah akhir-akhir ini. Istirahat sebentar ya 💚",
     );
   }
 
@@ -157,20 +171,18 @@ class NotificationService {
     await showInstant(
       id: 102,
       title: "💚 Kamu tidak sendiri",
-      body:
-          "Ambil waktu untuk dirimu. Kamu layak merasa lebih tenang.",
+      body: "Ambil waktu untuk dirimu. Kamu layak merasa lebih tenang.",
     );
   }
 
-  // ================= PSIKOLOG + MAPS CLICK =================
+  // ================= PSIKOLOG + MAPS =================
   static Future<void> notifyPsychologistSuggestion() async {
     await showInstant(
       id: 103,
       title: "💚 Kami peduli dengan kamu",
       body:
-          "Kalau terasa berat,\ncari bantuan itu oke."
-"👉 Ketuk untuk bantuan",
-payload: "https://www.google.com/maps/search/psikiater+terdekat",
+          "Kalau terasa berat,\ncari bantuan itu oke.👉 Ketuk cari psikiater",
+      payload: "https://www.google.com/maps/search/psikiater+terdekat",
     );
   }
 }
