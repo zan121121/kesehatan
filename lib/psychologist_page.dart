@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'maps_page.dart';
 
 class PsychologistPage extends StatelessWidget {
   const PsychologistPage({super.key});
@@ -70,17 +70,6 @@ class PsychologistPage extends StatelessWidget {
     },
   ];
 
-  /// ================= OPEN GOOGLE MAPS =================
-  Future<void> openMaps(String address) async {
-    final Uri url = Uri.parse(
-      "https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}",
-    );
-
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw "Tidak bisa membuka Maps";
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,7 +81,7 @@ class PsychologistPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          /// HEADER
+          /// HEADER (TIDAK DIUBAH)
           Container(
             width: double.infinity,
             margin: const EdgeInsets.all(16),
@@ -142,12 +131,13 @@ class PsychologistPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item["name"]!,
+                          item["name"] ?? "",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
+
                         const SizedBox(height: 8),
 
                         Row(
@@ -157,24 +147,12 @@ class PsychologistPage extends StatelessWidget {
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
-                                item["address"]!,
+                                item["address"] ?? "",
                                 style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ],
                         ),
-
-                        const SizedBox(height: 6),
-
-                        if (item["phone"]!.isNotEmpty)
-                          Row(
-                            children: [
-                              const Icon(Icons.phone,
-                                  size: 18, color: Colors.green),
-                              const SizedBox(width: 5),
-                              Text(item["phone"]!),
-                            ],
-                          ),
 
                         const SizedBox(height: 10),
 
@@ -187,13 +165,25 @@ class PsychologistPage extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
+
+                            /// 🔥 FIX UTAMA: kirim destination ke MapsPage
                             onPressed: () {
-                              openMaps(item["address"]!);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MapsPage(
+                                    email: "user",
+                                    destination: item["address"], // penting
+                                  ),
+                                ),
+                              );
                             },
+
                             icon: const Icon(Icons.map),
-                            label: const Text("Lihat Maps",    
-                            style: TextStyle(color: Colors.white), // ✅ FIX FONT PUTIH
-),
+                            label: const Text(
+                              "Lihat Maps",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
                       ],

@@ -19,7 +19,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
 
   bool kodeTerkirim = false;
 
-  /// 👁️ TOGGLE PASSWORD
   bool hidePass = true;
   bool hideConfirm = true;
 
@@ -67,12 +66,25 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
       return;
     }
 
+    /// 🔥 VALIDASI PASSWORD
+    String password = newPass.text;
+
+    bool hasMinLength = password.length >= 8;
+    bool hasSymbol =
+        RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(password);
+
+    if (!hasMinLength || !hasSymbol) {
+      showMsg("Password minimal 8 karakter dan harus ada simbol");
+      return;
+    }
+
     if (newPass.text != confirmPass.text) {
       showMsg("Password tidak sama");
       return;
     }
 
-    bool exists = await DatabaseHelper.instance.checkEmail(email.text);
+    bool exists =
+        await DatabaseHelper.instance.checkEmail(email.text);
 
     if (!exists) {
       showMsg("Email tidak ditemukan");
@@ -131,6 +143,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
           Positioned(top: 100, left: 40, child: bubble(100)),
           Positioned(bottom: 120, right: 30, child: bubble(140)),
 
+          /// CONTENT
           SingleChildScrollView(
             child: Column(
               children: [
@@ -223,9 +236,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                       ),
 
                       if (kodeTerkirim) ...[
+
                         const SizedBox(height: 15),
 
-                        /// KODE
                         TextField(
                           controller: kode,
                           decoration:
@@ -252,6 +265,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
                               },
                             ),
                           ),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        /// 🔥 TEXT HINT
+                        const Text(
+                          "Minimal 8 karakter dan simbol",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
 
                         const SizedBox(height: 15),
@@ -321,7 +342,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
     );
   }
 
-  /// 🔥 FIX TIDAK ADA BORDER BIRU
   InputDecoration inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -333,7 +353,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage>
       ),
 
       focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.teal), // ❌ bukan biru
+        borderSide: BorderSide(color: Colors.teal),
         borderRadius: BorderRadius.circular(12),
       ),
     );

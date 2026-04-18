@@ -299,7 +299,7 @@ class _ActivityReportPageState extends State<ActivityReportPage> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    "Riwayat 7 Hari - ${getUsername()}",
+                    "Riwayat - ${getUsername()}",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
