@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class BreathingPage extends StatefulWidget {
   const BreathingPage({super.key});
@@ -14,7 +15,12 @@ class _BreathingPageState extends State<BreathingPage>
   late AnimationController controller;
   late Animation<double> animation;
 
+  final FlutterTts tts = FlutterTts();
+
   String text = "Tarik Napas";
+  Timer? timer;
+
+  bool isStarted = false;
 
   @override
   void initState() {
@@ -29,20 +35,58 @@ class _BreathingPageState extends State<BreathingPage>
       CurvedAnimation(parent: controller, curve: Curves.easeInOut),
     );
 
+    /// 🔥 SETTING SUARA (biar lebih calming)
+    tts.setLanguage("id-ID");
+    tts.setSpeechRate(0.4); // lebih pelan = lebih tenang
+    tts.setPitch(1.0);
+  }
+
+  /// 🔥 START BREATHING + SUARA
+  void startBreathing() {
+    if (isStarted) return;
+
+    setState(() {
+      isStarted = true;
+    });
+
     controller.repeat(reverse: true);
 
-    Timer.periodic(const Duration(seconds: 4), (timer) {
+    /// suara pertama
+    speak("Tarik napas");
+
+    timer = Timer.periodic(const Duration(seconds: 4), (timer) {
       setState(() {
         text = text == "Tarik Napas"
             ? "Hembuskan Napas"
             : "Tarik Napas";
       });
+
+      /// 🔥 suara tiap pergantian
+      speak(text);
     });
+  }
+
+  /// 🔥 STOP (opsional biar aman)
+  void stopBreathing() {
+    controller.stop();
+    timer?.cancel();
+    tts.stop();
+
+    setState(() {
+      isStarted = false;
+      text = "Tarik Napas";
+    });
+  }
+
+  Future speak(String msg) async {
+    await tts.speak(msg);
   }
 
   @override
   void dispose() {
     controller.dispose();
+    timer?.cancel();
+    tts.stop();
     super.dispose();
   }
 
@@ -113,8 +157,22 @@ class _BreathingPageState extends State<BreathingPage>
                   ),
                 );
               },
-            )
+            ),
 
+            const SizedBox(height: 40),
+
+            /// 🔥 BUTTON START / STOP
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6FBF8F),
+                minimumSize: const Size(150, 50),
+              ),
+              onPressed: isStarted ? stopBreathing : startBreathing,
+              child: Text(
+                isStarted ? "Berhenti" : "Mulai",
+                style: const TextStyle(color: Colors.white),
+              ),
+            )
           ],
         ),
       ),

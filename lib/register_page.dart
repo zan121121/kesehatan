@@ -166,7 +166,7 @@ class _RegisterPageState extends State<RegisterPage>
                           Text(
                           "Daftar Akun",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.teal,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),

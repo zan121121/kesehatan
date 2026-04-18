@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class GroundingPage extends StatefulWidget {
   const GroundingPage({super.key});
@@ -7,22 +8,53 @@ class GroundingPage extends StatefulWidget {
   State<GroundingPage> createState() => _GroundingPageState();
 }
 
-class _GroundingPageState extends State<GroundingPage> {
+class _GroundingPageState extends State<GroundingPage>
+    with SingleTickerProviderStateMixin {
 
   int step = 0;
 
   final steps = [
-
     "Sebutkan 5 hal yang kamu lihat di sekitarmu.",
-
     "Sebutkan 4 hal yang bisa kamu sentuh.",
-
     "Sebutkan 3 suara yang bisa kamu dengar.",
-
     "Sebutkan 2 aroma yang bisa kamu rasakan.",
-
     "Sebutkan 1 hal yang kamu syukuri hari ini."
   ];
+
+  /// 🔥 TTS
+  final FlutterTts tts = FlutterTts();
+
+  /// 🔥 ANIMASI
+  late AnimationController controller;
+  late Animation<double> scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+
+    /// setup suara
+    tts.setLanguage("id-ID");
+    tts.setSpeechRate(0.45); // pelan & calming
+    tts.setPitch(1.0);
+
+    /// setup animasi (naik turun pelan)
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    scaleAnim = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+    );
+
+    /// 🔥 langsung bacakan step pertama
+    speak(steps[step]);
+  }
+
+  Future speak(String text) async {
+    await tts.stop(); // biar ga numpuk
+    await tts.speak(text);
+  }
 
   void nextStep(){
 
@@ -32,33 +64,38 @@ class _GroundingPageState extends State<GroundingPage> {
         step++;
       });
 
+      /// 🔥 suara tiap step
+      speak(steps[step]);
+
     }else{
+
+      tts.stop();
 
       showDialog(
         context: context,
-
         builder: (_)=>AlertDialog(
-
           title: const Text("Latihan Selesai"),
-
           content: const Text(
               "Kamu sudah menyelesaikan latihan grounding dengan baik 🌿"),
-
           actions: [
-
             TextButton(
               onPressed: (){
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-
               child: const Text("Kembali"),
             )
-
           ],
         ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    tts.stop();
+    super.dispose();
   }
 
   @override
@@ -84,10 +121,19 @@ class _GroundingPageState extends State<GroundingPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
 
-              const Icon(
-                Icons.spa,
-                size: 80,
-                color: Color(0xFF6FBF8F),
+              /// 🔥 ICON + ANIMASI GERAK HALUS
+              AnimatedBuilder(
+                animation: scaleAnim,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: scaleAnim.value,
+                    child: const Icon(
+                      Icons.spa,
+                      size: 80,
+                      color: Color(0xFF6FBF8F),
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 20),
@@ -105,7 +151,7 @@ class _GroundingPageState extends State<GroundingPage> {
               /// Progress latihan
               LinearProgressIndicator(
                 value: progress,
-                backgroundColor: Colors.grey[300],
+                backgroundColor: Colors.grey,
                 color: const Color(0xFF6FBF8F),
               ),
 
@@ -148,7 +194,10 @@ class _GroundingPageState extends State<GroundingPage> {
 
                 child: const Text(
                   "Lanjutkan",
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white, // 🔥 FIX PUTIH
+                  ),
                 ),
               )
 
