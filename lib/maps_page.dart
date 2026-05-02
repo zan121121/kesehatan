@@ -264,7 +264,7 @@ class _MapsPageState extends State<MapsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               navItem(Icons.home, "Halaman", 0),
-              navItem(Icons.assignment, "Ujian", 1),
+              navItem(Icons.assignment, "Kuesioner", 1),
               const SizedBox(width: 40),
               navItem(Icons.menu_book, "Materi", 2),
               navItem(Icons.person, "Akun", 3),

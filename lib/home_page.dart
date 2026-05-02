@@ -15,7 +15,6 @@ import 'detail_article_page.dart';
 import 'test_intro_page.dart';
 
 
-
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 class HomePage extends StatefulWidget {
   final String email;
@@ -128,7 +127,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               navItem(context, Icons.home, "Halaman"),
-              navItem(context, Icons.assignment, "Ujian"),
+              navItem(context, Icons.assignment, "Kuesioner"),
               const SizedBox(width: 40),
               navItem(context, Icons.menu_book, "Materi"),
               navItem(context, Icons.person, "Akun"),
@@ -200,8 +199,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.monetization_on, color: Colors.amber, size: 18),
-                  SizedBox(width: 5),
+Icon(Icons.favorite, color: Colors.white, size: 18),                  SizedBox(width: 5),
                     Text(
                     "$totalCoin",
                     style: TextStyle(
@@ -284,7 +282,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
   {"icon": Icons.edit_note, "title": "Jurnal"},
   {"icon": Icons.self_improvement, "title": "Meditasi"},
   {"icon": Icons.insights, "title": "Laporan Data"},
-  {"icon": Icons.favorite, "title": "pemulihan"},
+  {"icon": Icons.favorite, "title": "Pemulihan"},
   {"icon": Icons.location_on, "title": "Psikolog"},
   {"icon": Icons.warning, "title": "Peringatan Mood"},
   {"icon": Icons.emoji_events, "title": "Tantangan"},
@@ -334,7 +332,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
     Widget page;
 
     switch (title) {
-        case "pemulihan":
+        case "Pemulihan":
         page = HealingPage(email: widget.email);
         break;
       case "Jurnal":
@@ -390,10 +388,10 @@ builder: (_) => MapsPage(email: widget.email),          ),
   ];
 
   final leaderboard = [
-    ["Alya Putri", "2450 🪙"],
-    ["Rizky Pratama", "1980 🪙"],
-    ["Nadia Salsabila", "1760 🪙"],
-    ["Anda", "$totalCoin 🪙"],
+    ["Alya Putri", "2450 "],
+    ["Rizky Pratama", "1980 "],
+    ["Nadia Salsabila", "1760 "],
+    ["Anda", "$totalCoin "],
   ];
 
   return Padding(
@@ -495,7 +493,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
         const SizedBox(height: 25),
 
         const Text(
-          "Peringkat koin",
+          "Konsisten Pengguna",
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
 
@@ -521,7 +519,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
                         e[0],
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text("Koin: ${e[1]}"),
+                      Text("Mental Points : ${e[1]}"),
                     ],
                   )
                 ],
@@ -538,7 +536,7 @@ builder: (_) => MapsPage(email: widget.email),          ),
   Widget navItem(BuildContext context, IconData icon, String label) {
     return GestureDetector(
       onTap: () {
-        if (label == "Ujian") {
+        if (label == "Kuesioner") {
         Navigator.push(
         context,
         MaterialPageRoute(

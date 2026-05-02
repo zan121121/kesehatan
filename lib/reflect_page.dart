@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart';
+import 'mood_calculator.dart';
 
 class ReflectPage extends StatefulWidget {
   final String email;
@@ -25,6 +26,8 @@ class _ReflectPageState extends State<ReflectPage> {
   List<Map<String, dynamic>> history = [];
 
   String journalInsight = "";
+  int moodScore = 0;
+  String mentalStatus = "";
 
   @override
   void initState() {
@@ -60,96 +63,34 @@ class _ReflectPageState extends State<ReflectPage> {
     });
   }
 
-  /// ================= MOOD DETECTION (NO EMOJI OUTPUT) =================
-  String detectMood(String text) {
-    text = text.toLowerCase();
-
-    if (text.contains("capek") || text.contains("lelah")) return "Lelah";
-    if (text.contains("sedih") || text.contains("hancur")) return "Sedih";
-    if (text.contains("marah") || text.contains("kesal")) return "Marah";
-    if (text.contains("cemas") || text.contains("takut")) return "Cemas";
-    if (text.contains("senang") || text.contains("bahagia")) return "Bahagia";
-
-    return "Netral";
+  // ================= STATUS SAMA DENGAN ALERT PAGE =================
+  String getMentalStatus(int score) {
+    if (score >= 80) return "Sangat Stabil";
+    if (score >= 70) return "Stabil";
+    if (score >= 50) return "Cukup Stabil";
+    if (score >= 30) return "Perlu Perhatian";
+    return "Risiko Tinggi";
   }
 
-  /// ================= SISTEM PAKAR DIPERLUAS =================
-  String generatePsychologistInsight(String text) {
+  String generateInsight(String text, String status) {
     final t = text.toLowerCase();
 
-    // RISIKO BERAT
-    if (t.contains("bunuh diri") ||
-        t.contains("mengakhiri hidup") ||
-        t.contains("mati saja")) {
-      return "Kamu sedang berada dalam tekanan sangat berat. Kamu tidak perlu menghadapi ini sendirian. Cobalah segera berbicara dengan orang terpercaya atau bantuan profesional.";
+    if (t.contains("bunuh diri") || t.contains("mengakhiri hidup")) {
+      return "Kondisi kamu sangat berat. Segera cari bantuan profesional atau orang terdekat.";
     }
 
-    if (t.contains("hampa") ||
-        t.contains("kosong") ||
-        t.contains("tidak ada arti")) {
-      return "Perasaan kosong bisa muncul saat mental terlalu lelah. Ini tanda kamu perlu istirahat, bukan menyerah.";
+    if (status == "Risiko Tinggi") {
+      return "Kondisi mental kamu sedang tidak stabil. Disarankan istirahat dan berbicara dengan orang terpercaya.";
     }
 
-    if (t.contains("overthinking") ||
-        t.contains("kepikiran terus") ||
-        t.contains("tidak bisa tidur")) {
-      return "Pikiranmu sedang terlalu penuh. Coba tulis semua hal yang kamu pikirkan, lalu fokus pada satu hal kecil yang bisa kamu kontrol.";
+    if (status == "Perlu Perhatian") {
+      return "Kamu sedang dalam tekanan. Coba kurangi beban pikiran.";
     }
 
-    // KELUARGA
-    if (t.contains("keluarga") ||
-        t.contains("orang tua") ||
-        t.contains("rumah")) {
-      return "Masalah keluarga bisa terasa berat. Kamu tidak harus menanggung semuanya sendiri. Komunikasi kecil bisa membantu.";
-    }
-
-    // SOSIAL
-    if (t.contains("teman") ||
-        t.contains("dikhianati") ||
-        t.contains("dibohongi")) {
-      return "Hubungan sosial tidak selalu mudah. Pilih lingkungan yang membuatmu merasa aman dan dihargai.";
-    }
-
-    // KESENDIRIAN
-    if (t.contains("sendiri") || t.contains("sepi") || t.contains("ditinggalkan")) {
-      return "Kesepian adalah perasaan yang valid. Itu tidak berarti kamu benar-benar sendirian.";
-    }
-
-    // STRES
-    if (t.contains("stress") ||
-        t.contains("tertekan") ||
-        t.contains("tekanan")) {
-      return "Kamu sedang berada dalam tekanan mental. Istirahat bukan kemunduran, tapi kebutuhan.";
-    }
-
-    // CEMAS
-    if (t.contains("cemas") ||
-        t.contains("takut") ||
-        t.contains("khawatir")) {
-      return "Kecemasan sering muncul dari hal yang belum terjadi. Fokus pada hal yang bisa kamu kendalikan sekarang.";
-    }
-
-    // MARAH
-    if (t.contains("marah") || t.contains("emosi") || t.contains("kesal")) {
-      return "Emosi yang tinggi adalah sinyal penting. Ambil jeda sebelum bereaksi.";
-    }
-
-    // KEGAGALAN
-    if (t.contains("gagal") || t.contains("bodoh") || t.contains("tidak bisa")) {
-      return "Kegagalan bukan identitas diri. Itu bagian dari proses belajar.";
-    }
-
-    // POSITIF
-    if (t.contains("senang") ||
-        t.contains("bahagia") ||
-        t.contains("bersyukur")) {
-      return "Pengalaman positif hari ini penting untuk disadari. Pertahankan hal-hal yang membuatmu stabil.";
-    }
-
-    return "Menulis seperti ini membantu kamu memahami diri sendiri lebih dalam.";
+    return "Kondisi kamu stabil. Pertahankan kebiasaan positif.";
   }
 
-  /// ================= SAVE =================
+  // ================= SAVE =================
   Future<void> saveReflection() async {
     final text = journalController.text.trim();
 
@@ -173,8 +114,10 @@ class _ReflectPageState extends State<ReflectPage> {
     final todayKey =
         DateFormat('yyyy-MM-dd').format(now);
 
-    final mood = detectMood(text);
-    final insight = generatePsychologistInsight(text);
+    // ================= KALKULASI SAMA DENGAN ALERT PAGE =================
+    moodScore = MoodCalculator.journalToScore(text).round();
+    mentalStatus = getMentalStatus(moodScore);
+    final insight = generateInsight(text, mentalStatus);
 
     setState(() {
       journalInsight = insight;
@@ -192,7 +135,7 @@ class _ReflectPageState extends State<ReflectPage> {
       date: formattedDate,
       journal: text,
       answers: answerText,
-      mood: mood,
+      mood: mentalStatus,
       insight: insight,
     );
 
@@ -208,7 +151,7 @@ class _ReflectPageState extends State<ReflectPage> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Refleksi tersimpan +10 🪙")),
+      const SnackBar(content: Text("Refleksi tersimpan +10 Mental Point 💚")),
     );
 
     journalController.clear();
@@ -217,13 +160,14 @@ class _ReflectPageState extends State<ReflectPage> {
     await loadHistory();
   }
 
+  // ================= UI (TETAP) =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff3f6f5),
 
       appBar: AppBar(
-        title: const Text("Jurnal"),
+        title: const Text("Jurnal Kesehatan Mental"),
         backgroundColor: const Color(0xFF6FBF8F),
       ),
 
@@ -280,10 +224,10 @@ class _ReflectPageState extends State<ReflectPage> {
               minimumSize: const Size(double.infinity, 50),
             ),
             onPressed: saveReflection,
-            child: const Text("Simpan Jurnal",    
-             style: TextStyle(color: Colors.white), // ✅ FIX FONT PUTIH
-),
-            
+            child: const Text(
+              "Simpan Jurnal",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
 
           const SizedBox(height: 15),
@@ -294,9 +238,12 @@ class _ReflectPageState extends State<ReflectPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Insight Psikologis",
+                    "Hasil Analisis Mental",
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 10),
+                  Text("Skor: $moodScore / 100"),
+                  Text("Status: $mentalStatus"),
                   const SizedBox(height: 10),
                   Text(journalInsight),
                 ],

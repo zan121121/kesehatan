@@ -15,10 +15,10 @@ class TestIntroPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xfff3f6f5),
 
-      /// ================= APPBAR (SEPERTI EDUCATION PAGE) =================
+      /// ================= APPBAR =================
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text("Tes Kesehatan Mental"),
+        title: const Text("Kuesioner Kesehatan Mental"),
         backgroundColor: const Color(0xFF6FBF8F),
       ),
 
@@ -68,7 +68,7 @@ class TestIntroPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               navItem(context, Icons.home, "Halaman"),
-              navItem(context, Icons.assignment, "Ujian", isActive: true),
+              navItem(context, Icons.assignment, "Kuesioner", isActive: true),
               const SizedBox(width: 40),
               navItem(context, Icons.menu_book, "Materi"),
               navItem(context, Icons.person, "Akun"),
@@ -77,7 +77,7 @@ class TestIntroPage extends StatelessWidget {
         ),
       ),
 
-      /// ================= BODY (SUDAH CLEAN SEPERTI EDUCATION PAGE STYLE) =================
+      /// ================= BODY =================
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Center(
@@ -100,7 +100,7 @@ class TestIntroPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 const Text(
-                  "Tes Kesehatan Mental",
+                  "Kuesioner Kesehatan Mental",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -108,8 +108,9 @@ class TestIntroPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  "Tes ini akan membantu mengetahui kondisi mental kamu.\n"
-                  "Pastikan kamu mengisi dengan jujur ya 😊",
+                  "Kuesioner ini membantu memahami kondisi mental kamu.\n"
+                  "Isi dengan jujur ya 😊\n\n"
+                  "Catatan: Ini bukan diagnosis medis.",
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -126,7 +127,7 @@ class TestIntroPage extends StatelessWidget {
                     );
                   },
                   child: const Text(
-                    "Mulai Ujian",
+                    "Mulai Kuesioner",
                     style: TextStyle(color: Colors.white),
                   ),
                 )
@@ -154,7 +155,7 @@ class TestIntroPage extends StatelessWidget {
             ),
             (route) => false,
           );
-        } else if (label == "Ujian") {
+        } else if (label == "Kuesioner") {
           // stay
         } else if (label == "Materi") {
           Navigator.push(

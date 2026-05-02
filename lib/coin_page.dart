@@ -16,50 +16,60 @@ class CoinPage extends StatefulWidget {
 }
 
 class _CoinPageState extends State<CoinPage> {
-  int coin = 0;
+  int points = 0;
   bool isLoading = true;
 
+  /// ================= REWARD SYSTEM (RS / PSIKOLOG PARTNER REALISTIS) =================
   final List<Map<String, dynamic>> rewards = [
     {
-      "title": "Voucher Belanja",
-      "subtitle": "Minimal reward",
-      "coin": 100,
-      "icon": Icons.shopping_bag,
+      "title": "Sesi Check-in Konseling (15 Menit)",
+      "subtitle": "Konsultasi ringan dengan konselor partner",
+      "points": 100,
+      "icon": Icons.support_agent,
       "available": true
     },
     {
-      "title": "Pulsa 50K",
-      "subtitle": "Top up instan",
-      "coin": 500,
-      "icon": Icons.phone_android,
+      "title": "Diskon Sesi Psikolog",
+      "subtitle": "Potongan biaya konsultasi profesional",
+      "points": 200,
+      "icon": Icons.local_offer,
       "available": true
     },
     {
-      "title": "Headset Gaming",
-      "subtitle": "Barang menarik",
-      "coin": 1200,
-      "icon": Icons.headphones,
+      "title": "Prioritas Jadwal Konsultasi",
+      "subtitle": "Akses antrian lebih cepat dengan psikolog",
+      "points": 300,
+      "icon": Icons.schedule,
       "available": true
     },
     {
-      "title": "Smartwatch",
-      "subtitle": "Premium item",
-      "coin": 2500,
-      "icon": Icons.watch,
+      "title": "Sesi Relaksasi Terpandu",
+      "subtitle": "Latihan relaksasi bersama tenaga profesional",
+      "points": 400,
+      "icon": Icons.self_improvement,
       "available": true
     },
     {
-      "title": "Uang Tunai 5 Juta",
-      "subtitle": "Hadiah utama",
-      "coin": 5000,
-      "icon": Icons.attach_money,
+      "title": "Voucher Healing Session",
+      "subtitle": "Sesi healing individu atau group therapy",
+      "points": 600,
+      "icon": Icons.favorite,
       "available": true
     },
     {
-      "title": "Uang Ratusan Juta",
-      "subtitle": "Coming soon",
-      "coin": 10000,
-      "icon": Icons.workspace_premium,
+      "title": "Program Pendampingan Mental",
+      "subtitle": "Pendampingan lanjutan bersama konselor",
+      "points": 800,
+      "icon": Icons.health_and_safety,
+      "available": true
+    },
+
+    /// 🔥 COMING SOON (SPECIAL PARTNER RS)
+    {
+      "title": "Program Terapi Intensif RS Partner",
+      "subtitle": "Program healing intensif bersama rumah sakit rekanan",
+      "points": 1200,
+      "icon": Icons.local_hospital,
       "available": false
     },
   ];
@@ -67,89 +77,77 @@ class _CoinPageState extends State<CoinPage> {
   @override
   void initState() {
     super.initState();
-    loadCoin();
+    loadPoints();
   }
 
-  Future<void> loadCoin() async {
-    final total = await DatabaseHelper.instance.getTotalPoint(widget.email);
+  Future<void> loadPoints() async {
+    final total =
+        await DatabaseHelper.instance.getTotalPoint(widget.email);
 
     if (!mounted) return;
     setState(() {
-      coin = total;
+      points = total;
       isLoading = false;
     });
   }
 
-  /// ==============================
-  /// 🔥 REDEEM COIN FUNCTION
-  /// ==============================
-  void redeemReward(Map<String, dynamic> reward) {
-    if (!reward["available"]) {
+  void redeemReward(Map<String, dynamic> item) {
+    if (!item["available"]) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Item belum tersedia")),
+        const SnackBar(
+          content: Text("Program ini sedang dalam pengembangan"),
+        ),
       );
       return;
     }
 
-    if (coin < reward["coin"]) {
+    if (points < item["points"]) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Koin tidak mencukupi")),
+        const SnackBar(
+          content: Text("Points kamu belum cukup"),
+        ),
       );
       return;
     }
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Konfirmasi Penukaran"),
-          content: Text(
-            "Apakah kamu yakin ingin menukar ${reward["title"]} dengan ${reward["coin"]} Koin?",
+      builder: (_) => AlertDialog(
+        title: const Text("Tukar Reward Self-Healing"),
+        content: Text(
+          "Gunakan ${item["points"]} Points untuk mengakses:\n\n${item["title"]} ?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Nanti dulu"),
           ),
-          actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
 
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Batal"),
-            ),
+              await DatabaseHelper.instance.useCoin(
+                widget.email,
+                item["points"],
+              );
 
-            TextButton(
-              onPressed: () async {
+              await loadPoints();
 
-                /// 1. tutup dialog
-                Navigator.pop(context);
-
-                /// 2. kurangi coin di database
-                await DatabaseHelper.instance.useCoin(
-                  widget.email,
-                  reward["coin"],
-                );
-
-                /// 3. refresh coin di page ini
-                await loadCoin();
-
-                /// 4. kirim signal ke HomePage (INI PENTING)
-                Navigator.pop(context, true);
-
-                /// 5. notif sukses
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "Penukaran ${reward["title"]} berhasil",
-                    ),
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Berhasil mengakses: ${item["title"]}",
                   ),
-                );
-              },
-              child: const Text(
-                "Ya, Tukar",
-                style: TextStyle(color: Colors.green),
-              ),
+                ),
+              );
+            },
+            child: const Text(
+              "Tukar",
+              style: TextStyle(color: Colors.green),
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 
@@ -165,9 +163,8 @@ class _CoinPageState extends State<CoinPage> {
       backgroundColor: const Color(0xfff3f6f5),
 
       appBar: AppBar(
-        title: const Text("Koin & Reward"),
+        title: const Text("Self-Healing Rewards"),
         backgroundColor: const Color(0xFF6FBF8F),
-        elevation: 0,
       ),
 
       body: Column(
@@ -185,15 +182,18 @@ class _CoinPageState extends State<CoinPage> {
             ),
             child: Column(
               children: [
-                const Icon(Icons.monetization_on,
-                    size: 45, color: Colors.amber),
+                const Icon(
+                  Icons.favorite,
+                  size: 45,
+                  color: Colors.white,
+                ),
                 const SizedBox(height: 8),
                 const Text(
-                  "Total Koin",
+                  "Total Points Perjalanan Healing",
                   style: TextStyle(color: Colors.white70),
                 ),
                 Text(
-                  "$coin",
+                  "$points",
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -206,13 +206,13 @@ class _CoinPageState extends State<CoinPage> {
 
           const SizedBox(height: 10),
 
-          /// ================= LIST REWARD =================
+          /// ================= LIST =================
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(20),
               itemCount: rewards.length,
               itemBuilder: (context, index) {
-                final reward = rewards[index];
+                final item = rewards[index];
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -224,22 +224,15 @@ class _CoinPageState extends State<CoinPage> {
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 6,
-                      )
+                      ),
                     ],
                   ),
                   child: Row(
                     children: [
 
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          reward["icon"],
-                          color: Colors.black87,
-                        ),
+                      Icon(
+                        item["icon"],
+                        color: const Color(0xFF6FBF8F),
                       ),
 
                       const SizedBox(width: 12),
@@ -249,40 +242,36 @@ class _CoinPageState extends State<CoinPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              reward["title"],
+                              item["title"],
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              reward["subtitle"],
+                              item["subtitle"],
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey),
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
-                            Text(
-                              "${reward["coin"]} Koin",
-                              style: const TextStyle(fontSize: 12),
-                            ),
+                            Text("${item["points"]} Points"),
                           ],
                         ),
                       ),
 
-                      reward["available"]
+                      item["available"]
                           ? ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6FBF8F),
                               ),
-                              onPressed: () => redeemReward(reward),
+                              onPressed: () => redeemReward(item),
                               child: const Text(
-  "Tukar",
-  style: TextStyle(
-    color: Colors.white,
-  ),
-),
-                          )
+                                "Tukar",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            )
                           : const Text(
-                              "Coming Soon",
+                              "Segera Hadir",
                               style: TextStyle(color: Colors.grey),
                             )
                     ],

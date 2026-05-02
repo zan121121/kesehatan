@@ -121,7 +121,7 @@ return MapsPage(email: email);              },
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               navItem(context, Icons.home, "Halaman"),
-              navItem(context, Icons.assignment, "Ujian"),
+              navItem(context, Icons.assignment, "Kuesioner"),
 
               const SizedBox(width: 40),
 
@@ -218,7 +218,7 @@ return MapsPage(email: email);              },
           );
         }
 
-        else if (label == "Ujian") {
+        else if (label == "Kuesioner") {
           Navigator.push(
             context,
             MaterialPageRoute(

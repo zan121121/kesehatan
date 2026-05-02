@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'database_helper.dart';
-import 'services/notification_service.dart';
+import 'mood_calculator.dart';
 
 class AlertPage extends StatefulWidget {
   final String email;
@@ -16,8 +17,14 @@ class _AlertPageState extends State<AlertPage> {
 
   int mentalScore = 0;
   String status = "";
-  String desc = "";
-  Color color = Colors.green;
+  String trend = "";
+
+  String recommendation = "";
+  String meditationSuggestion = "";
+  String recoverySuggestion = "";
+
+  List<Map<String, dynamic>> reflections = [];
+  List<Map<String, dynamic>> weeklyData = [];
 
   @override
   void initState() {
@@ -25,185 +32,296 @@ class _AlertPageState extends State<AlertPage> {
     loadAllData();
   }
 
+  // ================= LOAD =================
   Future<void> loadAllData() async {
-    final testAnswers =
-        await DatabaseHelper.instance.getLastTestAnswers(widget.email);
-
-    final reflections =
+    final journal =
         await DatabaseHelper.instance.getReflectionHistory(widget.email);
 
-    setState(() {
-      mentalScore = calculateMentalScore(
-        testAnswers: testAnswers,
-        reflections: reflections,
+    reflections = journal;
+
+    mentalScore = mentalScoreEngine(reflections);
+    status = mentalStatus(mentalScore);
+    trend = trendAnalysis(reflections);
+
+    recommendation = getRecommendation(mentalScore);
+    meditationSuggestion = getMeditationSuggestion(mentalScore);
+    recoverySuggestion = getRecoverySuggestion(mentalScore);
+
+    buildWeeklyBar();
+
+    setState(() => loading = false);
+  }
+
+  // ================= DATE =================
+  DateTime? parseDate(String raw) {
+    if (raw.isEmpty) return null;
+
+    try {
+      return DateFormat('dd MMM yyyy • HH:mm', 'id_ID').parseStrict(raw);
+    } catch (_) {}
+
+    try {
+      return DateFormat('dd MMM yyyy • HH:mm').parseStrict(raw);
+    } catch (_) {}
+
+    try {
+      if (raw.contains('T')) {
+        return DateTime.parse(raw);
+      }
+    } catch (_) {}
+
+    try {
+      return DateFormat('yyyy-MM-dd').parse(raw);
+    } catch (_) {}
+
+    return null;
+  }
+
+  // ================= SCORE =================
+  int mentalScoreEngine(List<Map<String, dynamic>> data) {
+    if (data.isEmpty) return 0;
+
+    double total = 0;
+
+    for (var r in data) {
+      total += MoodCalculator.journalToScore(
+        (r['journal'] ?? '').toString(),
+      );
+    }
+
+    return (total / data.length).round();
+  }
+
+  // ================= 7 HARI =================
+  void buildWeeklyBar() {
+    weeklyData = [];
+
+    final now = DateTime.now();
+    Map<String, List<double>> grouped = {};
+
+    for (var r in reflections) {
+      final rawDate = r['date'] ?? "";
+      final journal = (r['journal'] ?? "").toString();
+
+      DateTime? date = parseDate(rawDate);
+      if (date == null) continue;
+
+      DateTime normalized = DateTime.utc(
+        date.year,
+        date.month,
+        date.day,
       );
 
-      analyze();
-      loading = false;
-    });
-  }
+      String key = DateFormat('yyyy-MM-dd').format(normalized);
 
-  // ================= SCORE FIX (TEST 50% + JOURNAL 50% MOOD BASED) =================
-  int calculateMentalScore({
-    required List<int> testAnswers,
-    required List<Map<String, dynamic>> reflections,
-  }) {
-    double testPercent = 0;
-    double journalPercent = 0;
-
-    // ================= TEST SCORE =================
-    if (testAnswers.isNotEmpty) {
-      double avg =
-          testAnswers.reduce((a, b) => a + b) / testAnswers.length;
-
-      testPercent = (avg / 50) * 100;
-      testPercent = testPercent.clamp(0, 100);
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(
+        MoodCalculator.journalToScore(journal),
+      );
     }
 
-    // ================= JOURNAL SCORE (MOOD BASED) =================
-    if (reflections.isNotEmpty) {
-      double totalMood = 0;
+    for (int i = 6; i >= 0; i--) {
+      DateTime day = now.subtract(Duration(days: i));
 
-      for (var r in reflections) {
-        String mood = (r['mood'] ?? '').toString();
+      DateTime normalized = DateTime.utc(
+        day.year,
+        day.month,
+        day.day,
+      );
 
-        // scoring mood
-        double score = switch (mood) {
-          "Bahagia" => 100,
-          "Netral" => 75,
-          "Lelah" => 60,
-          "Cemas" => 45,
-          "Sedih" => 30,
-          "Marah" => 20,
-          _ => 50
-        };
+      String key = DateFormat('yyyy-MM-dd').format(normalized);
 
-        totalMood += score;
-      }
+      List<double> values = grouped[key] ?? [];
 
-      journalPercent = totalMood / reflections.length;
-    } else {
-      journalPercent = 0;
-    }
+      double avg = values.isEmpty
+          ? 0
+          : values.reduce((a, b) => a + b) / values.length;
 
-    // ================= FINAL =================
-    if (testAnswers.isEmpty && reflections.isEmpty) return 0;
-
-    double finalScore =
-        (testPercent * 0.5) + (journalPercent * 0.5);
-
-    return finalScore.clamp(0, 100).round();
-  }
-
-  // ================= ANALISIS =================
-  void analyze() {
-    if (mentalScore == 0) {
-      status = "Belum Ada Data";
-      desc = "Isi tes dan jurnal terlebih dahulu.";
-      color = Colors.grey;
-    } else if (mentalScore == 100) {
-      status = "Sangat Sehat";
-      desc = "Kondisi mental sangat stabil.";
-      color = Colors.green;
-    } else if (mentalScore >= 80) {
-      status = "Mental Sehat";
-      desc = "Kondisi kamu baik.";
-      color = Colors.green;
-    } else if (mentalScore >= 60) {
-      status = "Cukup Stabil";
-      desc = "Ada sedikit tekanan.";
-      color = Colors.orange;
-    } else if (mentalScore >= 40) {
-      status = "Perlu Perhatian";
-      desc = "Kamu mulai tertekan.";
-      color = Colors.amber;
-    } else {
-      status = "Risiko Tinggi";
-      desc = "Butuh perhatian serius.";
-      color = Colors.red;
+      weeklyData.add({
+        "day": DateFormat('E', 'id_ID').format(day),
+        "score": avg.round(),
+      });
     }
   }
 
-  List<String> getAdvice() {
-    if (mentalScore >= 80) {
-      return ["Pertahankan kebiasaan baik", "Tetap konsisten"];
-    } else if (mentalScore >= 60) {
-      return ["Kurangi stres", "Istirahat cukup"];
-    } else if (mentalScore >= 40) {
-      return ["Jangan dipendam", "Cerita ke orang lain"];
-    } else {
-      return ["Cari bantuan", "Istirahat total"];
-    }
+  // ================= STATUS =================
+  String mentalStatus(int score) {
+    if (score >= 80) return "Sangat Stabil";
+    if (score >= 70) return "Stabil";
+    if (score >= 50) return "Cukup Stabil";
+    if (score >= 30) return "Perlu Perhatian";
+    return "Risiko Tinggi";
   }
 
-  Future<void> sendPsychologistNotification() async {
-    await NotificationService.notifyPsychologistSuggestion();
+  // ================= REKOMENDASI =================
+  String getRecommendation(int score) {
+    if (score >= 80) {
+      return "🔥 Kondisi mental kamu sangat baik.\n\n"
+          "Pertahankan kebiasaan positif seperti journaling dan self-awareness.";
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Notifikasi bantuan terkirim")),
+    if (score >= 60) {
+      return "🙂 Kondisi cukup stabil.\n\n"
+          "Tetap jaga keseimbangan aktivitas dan istirahat.";
+    }
+
+    if (score >= 40) {
+      return "⚠️ Mulai ada tekanan.\n\n"
+          "Kurangi beban pikiran dan lakukan relaksasi.";
+    }
+
+    return "🧘 Kondisi rendah.\n\n"
+        "Fokus pemulihan dan jangan memaksakan diri.";
+  }
+
+  // ================= MEDITASI =================
+  String getMeditationSuggestion(int score) {
+    if (score >= 80) {
+      return "Meditasi menenangkan diri / ringan.\n"
+          "Untuk menjaga kestabilan.";
+    }
+
+    if (score >= 60) {
+      return "Meditasi cemas / overthinking.\n"
+          "Untuk menenangkan pikiran.";
+    }
+
+    if (score >= 40) {
+      return "Meditasi anxiety / panik.\n"
+          "Untuk menurunkan emosi.";
+    }
+
+    return "Meditasi stres berat / sulit tidur.\n"
+        "Untuk pemulihan mental.";
+  }
+
+  // ================= PEMULIHAN =================
+  String getRecoverySuggestion(int score) {
+    if (score >= 80) {
+      return "Menenangkan diri + suara alam.\n"
+          "Menjaga kestabilan.";
+    }
+
+    if (score >= 60) {
+      return "Latihan napas + suara hujan.\n"
+          "Mengurangi stres ringan.";
+    }
+
+    if (score >= 40) {
+      return "Body scan + menenangkan diri.\n"
+          "Menstabilkan emosi.";
+    }
+
+    return "Melepas pikiran + napas dalam + suara alam.\n"
+        "Pemulihan dari stres berat.";
+  }
+
+  // ================= TREND =================
+  String trendAnalysis(List<Map<String, dynamic>> data) {
+    if (data.length < 2) return "Stabil";
+
+    List<int> scores = data.map((e) {
+      return MoodCalculator.journalToScore(
+        (e['journal'] ?? '').toString(),
+      ).toInt();
+    }).toList();
+
+    if (scores.last > scores[scores.length - 2]) return "Membaik";
+    if (scores.last < scores[scores.length - 2]) return "Menurun";
+    return "Stabil";
+  }
+
+  // ================= BAR =================
+  Widget buildBar(String day, int value) {
+    int bars = (value / 10).round();
+    String bar = "█" * bars + "░" * (10 - bars);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(width: 60, child: Text(day)),
+          Expanded(
+            child: Text(
+              bar,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 16,
+                color: Colors.green,
+              ),
+            ),
+          ),
+          Text("$value"),
+        ],
+      ),
     );
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff3f6f5),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF6FBF8F),
-        title: const Text("Peringatan Mood"),
+        title: const Text("Analisis Mental"),
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
 
-                  // SCORE CARD
+                  // SCORE
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(25),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          color.withOpacity(0.8),
-                          color.withOpacity(0.3),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Column(
                       children: [
                         Text(
-                          "$mentalScore%",
+                          "$mentalScore / 100",
                           style: const TextStyle(
-                            fontSize: 42,
+                            fontSize: 36,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          status,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          desc,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
+                        Text(status,
+                            style: const TextStyle(color: Colors.white)),
+                        Text("Trend: $trend",
+                            style: const TextStyle(color: Colors.white70)),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
 
+                  // CHART
+                  Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Mood 7 Hari (Journal Only)"),
+                        const SizedBox(height: 10),
+                        ...weeklyData.map((e) =>
+                            buildBar(e['day'], e['score'])),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // REKOMENDASI
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
@@ -214,29 +332,56 @@ class _AlertPageState extends State<AlertPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Saran Pemulihan",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        const Text("Rekomendasi"),
                         const SizedBox(height: 10),
-                        ...getAdvice().map((e) => Text("• $e")),
+                        Text(recommendation),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
 
-                  SizedBox(
+                  // MEDITASI
+                  Container(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6FBF8F),
-                      ),
-                      onPressed: sendPsychologistNotification,
-                      child: const Text(
-                        "Kirim Bantuan",
-                        style: TextStyle(color: Colors.white), // 🔥 FIX FONT PUTIH
-                      ),
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffe7f4ee),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Meditasi",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(meditationSuggestion),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // PEMULIHAN
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffeef7f2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Pemulihan",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(recoverySuggestion),
+                      ],
                     ),
                   ),
                 ],

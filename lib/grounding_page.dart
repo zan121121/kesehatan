@@ -9,91 +9,148 @@ class GroundingPage extends StatefulWidget {
 }
 
 class _GroundingPageState extends State<GroundingPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
 
   int step = 0;
 
   final steps = [
-    "Sebutkan 5 hal yang kamu lihat di sekitarmu.",
-    "Sebutkan 4 hal yang bisa kamu sentuh.",
-    "Sebutkan 3 suara yang bisa kamu dengar.",
-    "Sebutkan 2 aroma yang bisa kamu rasakan.",
-    "Sebutkan 1 hal yang kamu syukuri hari ini."
+    "Sekarang, sebutkan 5 hal yang kamu lihat di sekitarmu.",
+    "Sekarang, sebutkan 4 hal yang bisa kamu sentuh.",
+    "Sekarang, dengarkan... sebutkan 3 suara yang bisa kamu dengar.",
+    "Tarik napas perlahan... sebutkan 2 aroma yang bisa kamu rasakan.",
+    "Terakhir, sebutkan 1 hal yang kamu syukuri hari ini."
   ];
 
-  /// 🔥 TTS
+  final String closingText =
+      "Latihan menenangkan diri telah selesai. "
+      "Kamu telah berhasil membawa pikiranmu kembali ke saat ini. "
+      "Ingat, kamu aman, kamu cukup, dan kamu kuat 🌿";
+
   final FlutterTts tts = FlutterTts();
 
-  /// 🔥 ANIMASI
-  late AnimationController controller;
+  late AnimationController scaleController;
   late Animation<double> scaleAnim;
+
+  late AnimationController fadeController;
+  late Animation<double> fadeAnim;
 
   @override
   void initState() {
     super.initState();
 
-    /// setup suara
+    /// 🔊 TTS SETUP
     tts.setLanguage("id-ID");
-    tts.setSpeechRate(0.45); // pelan & calming
+    tts.setSpeechRate(0.42);
     tts.setPitch(1.0);
 
-    /// setup animasi (naik turun pelan)
-    controller = AnimationController(
+    /// 🔥 AUTO NEXT
+    tts.setCompletionHandler(() {
+      nextStepAuto();
+    });
+
+    /// 🔥 ANIMASI NAFAS
+    scaleController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
-    scaleAnim = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+    scaleAnim = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: scaleController, curve: Curves.easeInOut),
     );
 
-    /// 🔥 langsung bacakan step pertama
+    /// 🔥 ANIMASI FADE TEXT
+    fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    fadeAnim = CurvedAnimation(
+      parent: fadeController,
+      curve: Curves.easeIn,
+    );
+
+    fadeController.forward();
+
+    /// 🔥 START
     speak(steps[step]);
   }
 
   Future speak(String text) async {
-    await tts.stop(); // biar ga numpuk
+    await tts.stop();
     await tts.speak(text);
   }
 
-  void nextStep(){
+  void nextStepAuto() async {
+    if (step < steps.length - 1) {
 
-    if(step < steps.length - 1){
+      await fadeController.reverse();
 
       setState(() {
         step++;
       });
 
-      /// 🔥 suara tiap step
+      fadeController.forward();
+
       speak(steps[step]);
 
-    }else{
+    } else {
 
-      tts.stop();
+      /// 🔥 STEP TERAKHIR → LANJUT KE CLOSING AI
+      await Future.delayed(const Duration(seconds: 1));
 
-      showDialog(
-        context: context,
-        builder: (_)=>AlertDialog(
-          title: const Text("Latihan Selesai"),
-          content: const Text(
-              "Kamu sudah menyelesaikan latihan grounding dengan baik 🌿"),
-          actions: [
-            TextButton(
-              onPressed: (){
+      speak(closingText);
+
+      /// 🔥 TUNGGU SUARA SELESAI → POPUP
+      tts.setCompletionHandler(() {
+        showFinishDialog();
+      });
+    }
+  }
+
+  void showFinishDialog() {
+    tts.stop();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text("✨ Grounding Selesai"),
+        content: const Text(
+          "Kamu sudah menyelesaikan latihan grounding.\n\n"
+          "Pikiranmu sekarang lebih tenang dan fokus 🌿",
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
-              child: const Text("Kembali"),
-            )
-          ],
-        ),
-      );
-    }
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6FBF8F),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text(
+                "Selesai",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    scaleController.dispose();
+    fadeController.dispose();
     tts.stop();
     super.dispose();
   }
@@ -104,104 +161,125 @@ class _GroundingPageState extends State<GroundingPage>
     double progress = (step + 1) / steps.length;
 
     return Scaffold(
+      backgroundColor: const Color(0xffeef6f2),
 
       appBar: AppBar(
-        title: const Text("Latihan Grounding"),
+        title: const Text("Latihan Menenangkan Diri"),
+        centerTitle: true,
         backgroundColor: const Color(0xFF6FBF8F),
       ),
 
-      backgroundColor: const Color(0xfff3f6f5),
-
-      body: Center(
-
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-
-              /// 🔥 ICON + ANIMASI GERAK HALUS
-              AnimatedBuilder(
-                animation: scaleAnim,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: scaleAnim.value,
-                    child: const Icon(
-                      Icons.spa,
-                      size: 80,
-                      color: Color(0xFF6FBF8F),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Latihan Fokus Pikiran",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              /// Progress latihan
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.grey,
-                color: const Color(0xFF6FBF8F),
-              ),
-
-              const SizedBox(height: 30),
-
-              /// Instruksi latihan
-              Container(
-                padding: const EdgeInsets.all(20),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-
-                child: Text(
-                  steps[step],
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              ElevatedButton(
-                onPressed: nextStep,
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6FBF8F),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 15,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-
-                child: const Text(
-                  "Lanjutkan",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white, // 🔥 FIX PUTIH
-                  ),
-                ),
-              )
-
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFE8F5F0),
+              Color(0xFFD6F0E3),
             ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+
+                /// 🔥 ANIMASI ICON (NAFAS)
+                AnimatedBuilder(
+                  animation: scaleAnim,
+                  builder: (_, child) {
+                    return Transform.scale(
+                      scale: scaleAnim.value,
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.2),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            )
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.spa,
+                          size: 60,
+                          color: Color(0xFF6FBF8F),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 30),
+
+                /// TITLE
+                const Text(
+                  "Latihan Fokus Pikiran",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// PROGRESS
+                LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(20),
+                  backgroundColor: Colors.grey.shade300,
+                  color: const Color(0xFF6FBF8F),
+                ),
+
+                const SizedBox(height: 30),
+
+                /// 🔥 TEXT
+                FadeTransition(
+                  opacity: fadeAnim,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 15,
+                        )
+                      ],
+                    ),
+                    child: Text(
+                      steps[step],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                /// HINT
+                const Text(
+                  "Fokuskan dirimu pada momen saat ini...",
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

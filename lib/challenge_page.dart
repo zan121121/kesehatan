@@ -38,11 +38,11 @@ class _ChallengePageState extends State<ChallengePage> {
       "type": "reflect",
     },
     {
-      "id": "test_mental",
-      "title": "Mental Health Test",
-      "desc": "Selesaikan tes mental (reward besar)",
+      "id": "kuesioner",
+      "title": "Kuesioner Kesehatan Mental",
+      "desc": "Isi kuesioner untuk mengetahui kondisi mental kamu",
       "coin": 50,
-      "type": "test",
+      "type": "kuesioner",
     },
     {
       "id": "daily_mood",
@@ -76,20 +76,20 @@ class _ChallengePageState extends State<ChallengePage> {
           (e) => e["date"].toString().split(" ")[0] == today,
         );
       } 
-      else if (type == "test") {
+      else if (type == "kuesioner") {
         tempCompleted[id] =
-            await db.hasClaimedToday(widget.email, type, today);
+            await db.hasClaimedToday(widget.email, "test", today);
       } 
       else if (type == "mood") {
         tempCompleted[id] =
             await db.checkTodayMood(widget.email, today);
       } 
       else if (type == "checkin") {
-        tempCompleted[id] = true; // always available
+        tempCompleted[id] = true;
       }
 
       tempClaimed[id] =
-          await db.hasClaimedToday(widget.email, type, today);
+          await db.hasClaimedToday(widget.email, type == "kuesioner" ? "test" : type, today);
     }
 
     setState(() {
@@ -99,7 +99,7 @@ class _ChallengePageState extends State<ChallengePage> {
     });
   }
 
-  // ================= OPEN PAGE ONLY FOR 2 MISSION =================
+  // ================= OPEN PAGE =================
   Future<void> openMission(String id) async {
     if (id == "reflect") {
       await Navigator.push(
@@ -107,7 +107,7 @@ class _ChallengePageState extends State<ChallengePage> {
         MaterialPageRoute(builder: (_) => ReflectPage(email: widget.email)),
       );
     } 
-    else if (id == "test_mental") {
+    else if (id == "kuesioner") {
       await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => TestPage(email: widget.email)),
@@ -117,7 +117,7 @@ class _ChallengePageState extends State<ChallengePage> {
     await loadStatus();
   }
 
-  // ================= DIRECT CLAIM (CHECKIN + MOOD) =================
+  // ================= CLAIM =================
   Future<void> claimDirect(String id, int coin, String type) async {
     final db = DatabaseHelper.instance;
 
@@ -142,7 +142,7 @@ class _ChallengePageState extends State<ChallengePage> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("+$coin Koin 🪙")),
+      SnackBar(content: Text("+$coin Mental Points 💚")),
     );
   }
 
@@ -158,7 +158,7 @@ class _ChallengePageState extends State<ChallengePage> {
     return Scaffold(
       backgroundColor: const Color(0xfff3f6f5),
       appBar: AppBar(
-        title: const Text("Tantangan Sistem"),
+        title: const Text("Tantangan Harian"),
         backgroundColor: const Color(0xFF6FBF8F),
       ),
 
@@ -198,7 +198,7 @@ class _ChallengePageState extends State<ChallengePage> {
                 const SizedBox(height: 10),
 
                 Text(
-                  "🪙 ${item["coin"]}",
+                  "+${item["coin"]} Mental Points 💚",
                   style: const TextStyle(
                     color: Color(0xFF6FBF8F),
                     fontWeight: FontWeight.bold,

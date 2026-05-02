@@ -240,21 +240,20 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: Colors.white.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.monetization_on,
-                          color: Colors.amber),
-                      const SizedBox(width: 5),
-                      Text(
-                        "$coin Koin",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    ],
-                  ),
+                 child: Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Icon(Icons.favorite, color: Colors.white, size: 18),
+    const SizedBox(width: 6),
+    Text(
+      "$coin",
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    )
+  ],
+),
                 )
               ],
             ),
@@ -286,7 +285,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(width: 10),
                       const Expanded(
                         child: Text(
-                          "Tukar Koin",
+                          "Tukar Points",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -335,7 +334,7 @@ class _ProfilePageState extends State<ProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               navItem(context, Icons.home, "Beranda"),
-              navItem(context, Icons.assignment, "Ujian"),
+              navItem(context, Icons.assignment, "Kuesioner"),
               const SizedBox(width: 40),
               navItem(context, Icons.menu_book, "Materi"),
               navItem(context, Icons.person, "Akun", isActive: true),
@@ -362,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             (route) => false,
           );
-        } else if (label == "Ujian") {
+        } else if (label == "Kuesioner") {
           Navigator.push(
             context,
             MaterialPageRoute(

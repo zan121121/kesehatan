@@ -1,3 +1,4 @@
+import 'dart:convert'; // 🔥 WAJIB
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart';
@@ -149,65 +150,102 @@ class _TestPageState extends State<TestPage> {
         currentQuestion = 0;
       });
     } else {
-  final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-  /// 🔥 HITUNG SCORE
-  int score = calculateTestScore();
+      int score = calculateTestScore();
 
-  /// 🔥 SIMPAN KE MOOD
-  await DatabaseHelper.instance.insertMood(
-    widget.email,
-    today + "_test",
-    score,
-    "Hasil test mental",
-  );
+     // 🔥 ambil detail jawaban
+final detail = getAnswerDetails();
 
-  /// 🔥 TAMBAH POINT
-  await DatabaseHelper.instance.addPoint(widget.email, "test", today);
+// 🔥 simpan versi lama (biar tetap aman)
+await DatabaseHelper.instance.insertMood(
+  widget.email,
+  today + "_questionnaire",
+  score,
+  "Hasil kuesioner kesehatan mental",
+);
 
-  if (context.mounted) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Tes Selesai"),
-        content: Text("Skor mental kamu: $score% 💚 + 50 🪙 "),
-      ),
-    );
+// 🔥 simpan detail baru
+await DatabaseHelper.instance.insertQuestionnaireDetail(
+  widget.email,
+  today,
+  score,
+  jsonEncode(detail), // ✅ FIX
+);
+      await DatabaseHelper.instance.addPoint(widget.email, "test", today);
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pop(context);
-      Navigator.popUntil(context, (route) => route.isFirst);
-    });
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Kuesioner Selesai"),
+            content: Text(
+                "Skor kesehatan mental kamu: $score%  + 50 Mental Points 💚 "),
+          ),
+        );
+
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pop(context);
+          Navigator.popUntil(context, (route) => route.isFirst);
+        });
+      }
+    }
   }
+
+List<String> getAllQuestions() {
+  return [
+    ...mentalQuestions,
+    ...personalityQuestions,
+    ...reflectionQuestions,
+  ];
 }
-  }
 
-  int calculateTestScore() {
-  double total = 0;
+List<Map<String, dynamic>> getAnswerDetails() {
+  List<Map<String, dynamic>> result = [];
+  final allQuestions = getAllQuestions();
 
   for (int i = 0; i < answers.length; i++) {
     int val = answers[i] ?? 0;
+    int point = 0;
 
-    /// ================= MENTAL (dibalik) =================
     if (i < 15) {
-      if (val == 0) total += 100; // Tidak Pernah (bagus)
-      if (val == 1) total += 50;  // Terkadang
-      if (val == 2) total += 0;   // Selalu (buruk)
+      if (val == 0) point = 100;
+      if (val == 1) point = 50;
+      if (val == 2) point = 0;
+    } else if (i < 35) {
+      point = val * 25;
+    } else {
+      point = val * 50;
     }
 
-    /// ================= PERSONALITY =================
-    else if (i < 35) {
-      total += val * 25; // 0 - 100
-    }
-
-    /// ================= REFLECTION =================
-    else {
-      total += val * 50; // 0 - 100
-    }
+    result.add({
+      "question": allQuestions[i],
+      "answer": val,
+      "point": point,
+    });
   }
 
-  return (total / answers.length).round();
+  return result;
 }
+  int calculateTestScore() {
+    double total = 0;
+
+    for (int i = 0; i < answers.length; i++) {
+      int val = answers[i] ?? 0;
+
+      if (i < 15) {
+        if (val == 0) total += 100;
+        if (val == 1) total += 50;
+        if (val == 2) total += 0;
+      } else if (i < 35) {
+        total += val * 25;
+      } else {
+        total += val * 50;
+      }
+    }
+
+    return (total / answers.length).round();
+  }
 
   /// ================= UI =================
 
@@ -220,55 +258,52 @@ class _TestPageState extends State<TestPage> {
     }
 
     if (!isAllowed) {
-  return Scaffold(
-    backgroundColor: const Color(0xfff3f6f5),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFF6FBF8F),
-
-      /// tombol kembali kiri atas
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      ),
-
-      title: const Text("Tes Kesehatan Mental"),
-    ),
-    body: Center(
-      child: Container(
-        margin: const EdgeInsets.all(20),
-        padding: const EdgeInsets.all(25),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 10)
-          ],
+      return Scaffold(
+        backgroundColor: const Color(0xfff3f6f5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF6FBF8F),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          title: const Text("Kuesioner Kesehatan Mental"),
         ),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.lock_clock, size: 60, color: Colors.orange),
-            SizedBox(height: 15),
-            Text(
-              "Tes Sudah Dikerjakan",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+        body: Center(
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Colors.black12, blurRadius: 10)
+              ],
             ),
-            SizedBox(height: 10),
-            Text(
-              "Kamu bisa mengerjakan lagi setelah 3 hari ya 😊",
-              textAlign: TextAlign.center,
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_clock, size: 60, color: Colors.orange),
+                SizedBox(height: 15),
+                Text(
+                  "Kuesioner Sudah Diisi",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "Kamu bisa mengisi kembali setelah 3 hari ya 😊",
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-    ),
-  );
-}
+      );
+    }
 
     final questions = getCurrentQuestions();
     final question = questions[currentQuestion];
@@ -279,12 +314,10 @@ class _TestPageState extends State<TestPage> {
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF6FBF8F),
         elevation: 0,
-        title: const Text("Tes Kesehatan Mental"),
+        title: const Text("Kuesioner Kesehatan Mental"),
       ),
-
       body: Column(
         children: [
-
           Container(
             padding: const EdgeInsets.all(20),
             width: double.infinity,
@@ -313,9 +346,7 @@ class _TestPageState extends State<TestPage> {
               }),
             ),
           ),
-
           const SizedBox(height: 15),
-
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -334,25 +365,18 @@ class _TestPageState extends State<TestPage> {
                       "Soal ${currentQuestion + 1} / ${questions.length}",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-
                     const SizedBox(height: 10),
-
                     LinearProgressIndicator(
                       value: (currentQuestion + 1) / questions.length,
                       color: const Color(0xFF6FBF8F),
                     ),
-
                     const SizedBox(height: 20),
-
                     Text(
                       question,
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 20),
-
                     Expanded(child: buildAnswerUI()),
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -366,10 +390,8 @@ class _TestPageState extends State<TestPage> {
                                   ? "Kirim Jawaban"
                                   : "Lanjut Bagian")
                               : "Lanjut",
-                              style: const TextStyle(
-    color: Colors.white,
+                          style: const TextStyle(color: Colors.white),
                         ),
-                        )
                       ),
                     )
                   ],
@@ -382,8 +404,6 @@ class _TestPageState extends State<TestPage> {
     );
   }
 
-  /// ================= UI PER SECTION =================
-
   Widget buildAnswerUI() {
     if (currentSection == 0) return checklistUI();
     if (currentSection == 1) return emojiUI();
@@ -391,7 +411,7 @@ class _TestPageState extends State<TestPage> {
   }
 
   Widget checklistUI() {
-    final options = ["Tidak Pernah","Terkadang","Selalu"];
+    final options = ["Tidak Pernah", "Terkadang", "Selalu"];
 
     return Column(
       children: List.generate(options.length, (i) {
@@ -435,7 +455,7 @@ class _TestPageState extends State<TestPage> {
   }
 
   Widget cardChoiceUI() {
-    final options = ["Tidak Pernah","Jarang", "Selalu"];
+    final options = ["Tidak Pernah", "Jarang", "Selalu"];
 
     return Column(
       children: List.generate(options.length, (i) {

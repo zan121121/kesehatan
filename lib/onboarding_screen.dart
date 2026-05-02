@@ -15,7 +15,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   int pageIndex = 0;
   late AnimationController _controller;
 
-  List<bool> showItems = [false, false, false, false];
+  List<bool> showItems = [false, false, false, false, false];
 
   final TextStyle titleStyle = const TextStyle(
     fontSize: 22,
@@ -38,8 +38,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
 
+    /// animasi muncul satu-satu
     for (int i = 0; i < showItems.length; i++) {
-      Future.delayed(Duration(milliseconds: 250 * i), () {
+      Future.delayed(Duration(milliseconds: 400 * i), () {
         if (mounted) {
           setState(() {
             showItems[i] = true;
@@ -57,7 +58,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   void nextPage() async {
     if (pageIndex < 2) {
-      setState(() => pageIndex++);
+      setState(() {
+        pageIndex++;
+        resetAnimation();
+      });
     } else {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool("first_open", false);
@@ -66,6 +70,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         context,
         MaterialPageRoute(builder: (_) => const LoginPage()),
       );
+    }
+  }
+
+  /// reset animasi tiap pindah page
+  void resetAnimation() {
+    for (int i = 0; i < showItems.length; i++) {
+      showItems[i] = false;
+    }
+
+    for (int i = 0; i < showItems.length; i++) {
+      Future.delayed(Duration(milliseconds: 400 * i), () {
+        if (mounted) {
+          setState(() {
+            showItems[i] = true;
+          });
+        }
+      });
     }
   }
 
@@ -103,13 +124,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
                   const SizedBox(height: 20),
 
-                  /// PAGE CONTENT CENTER
+                  /// PAGE CONTENT
                   Expanded(
-                    child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        child: getPage(),
-                      ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: getPage(),
                     ),
                   ),
 
@@ -122,8 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6FBF8F),
-                        foregroundColor: Colors.white, // 🔥 ini penting
-
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
@@ -131,10 +149,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       onPressed: nextPage,
                       child: Text(
                         pageIndex == 2 ? "Mulai Sekarang" : "Lanjut",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white, 
-                        ),
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
@@ -152,102 +167,141 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   /// ================= PAGE CONTROL =================
   Widget getPage() {
     if (pageIndex == 0) return intro();
-    if (pageIndex == 1) return info();
+    if (pageIndex == 1) return flowChat();
     return edukasi();
   }
 
+  /// ================= PAGE 1 =================
   Widget intro() {
-  return Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
 
-      /// 🔥 LOGO APP
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.4),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(0.4),
+          ),
+          child: Image.asset(
+            "assets/Icons/hearts.png",
+            width: 80,
+            height: 80,
+          ),
         ),
-        child: Image.asset(
-          "assets/Icons/hearts.png",
-          width: 80,
-          height: 80,
+
+        const SizedBox(height: 20),
+
+        const Text(
+          "RuangSadar",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
+          ),
         ),
-      ),
 
-      const SizedBox(height: 20),
+        const SizedBox(height: 10),
 
-      const Text(
-        "RuangSadar",
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.teal,
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            "Aplikasi untuk membantu menjaga kesehatan mental dengan cara sederhana, terstruktur, dan mudah digunakan setiap hari.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, height: 1.5),
+          ),
         ),
-      ),
+      ],
+    );
+  }
 
-      const SizedBox(height: 10),
-
-      const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10),
-        child: Text(
-          "Aplikasi untuk membantu menjaga kesehatan mental dengan cara sederhana, "
-          "terstruktur, dan mudah digunakan setiap hari.",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, height: 1.5),
-        ),
-      ),
-    ],
-  );
-}
-  /// ================= PAGE 2 =================
-  Widget info() {
-    final features = [
-      ["Pemantauan Emosi", "Melacak kondisi mental harian secara sederhana.", Icons.bar_chart],
-      ["Analisis Mental", "Membantu memahami kondisi pikiran pengguna.", Icons.psychology],
-      ["Rekomendasi Solusi", "Memberikan langkah kecil yang bisa dilakukan.", Icons.lightbulb],
-      ["Relaksasi", "Teknik untuk menenangkan pikiran.", Icons.self_improvement],
-      ["Edukasi Mental", "Pengetahuan kesehatan mental dasar.", Icons.menu_book],
+  /// ================= PAGE 2 (CHAT FLOW) =================
+  Widget flowChat() {
+    final steps = [
+      ["Hari ini saya merasa cemas...", true],
+      ["Silakan isi jurnal dan lakukan tes mental", false],
+      ["Sistem sedang menganalisis kondisi kamu...", false],
+      ["Mood kamu menurun dalam beberapa hari terakhir", false],
+      ["Kami sarankan meditasi atau bantuan profesional", false],
     ];
 
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: features.map((f) {
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(14),
+      children: [
+
+        const SizedBox(height: 10),
+
+        const Text(
+          "Simulasi Cara Kerja Aplikasi",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
           ),
-          child: Row(
-            children: [
-              Icon(f[2] as IconData, color: Colors.teal),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      f[0] as String,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+        ),
+
+        const SizedBox(height: 10),
+
+        Expanded(
+          child: ListView.builder(
+            itemCount: steps.length,
+            itemBuilder: (context, index) {
+              final isUser = steps[index][1] as bool;
+
+              return AnimatedOpacity(
+                duration: const Duration(milliseconds: 500),
+                opacity: showItems[index] ? 1 : 0,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 400),
+                  offset: showItems[index]
+                      ? Offset.zero
+                      : isUser
+                          ? const Offset(-0.5, 0)
+                          : const Offset(0.5, 0),
+                  child: Row(
+                    mainAxisAlignment:
+                        isUser ? MainAxisAlignment.start : MainAxisAlignment.end,
+                    children: [
+
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isUser
+                              ? Colors.white.withOpacity(0.6)
+                              : const Color(0xFF6FBF8F),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isUser ? Icons.person : Icons.smart_toy,
+                              size: 16,
+                              color: isUser ? Colors.black54 : Colors.white,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                steps[index][0] as String,
+                                style: TextStyle(
+                                  color: isUser
+                                      ? Colors.black87
+                                      : Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      f[1] as String,
-                      style: descStyle,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 
@@ -255,8 +309,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget edukasi() {
     final cbtPoints = [
       ["Identifikasi Pikiran", "Mengenali pikiran otomatis negatif."],
-      ["Uji Realitas Pikiran", "Menilai apakah pikiran itu benar atau tidak."],
-      ["Perilaku Positif", "Melakukan tindakan kecil yang sehat."],
+      ["Uji Realitas Pikiran", "Menilai apakah pikiran benar atau tidak."],
+      ["Perilaku Positif", "Melakukan tindakan sehat."],
       ["Monitoring Mood", "Melihat pola emosi dari waktu ke waktu."],
     ];
 

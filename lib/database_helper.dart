@@ -1,5 +1,7 @@
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -20,21 +22,41 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
+  Future<List<Map<String, dynamic>>> getQuestionnaireHistory(String email) async {
+  final db = await database;
+
+  return await db.query(
+    'mood',
+    where: 'email = ? AND date LIKE ?',
+    whereArgs: [email, '%_questionnaire'],
+    orderBy: 'date DESC',
+  );
+}
+
   // ================= CREATE TABLE =================
   Future _createDB(Database db, int version) async {
-    await db.execute('''
+await db.execute('''
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT,
   email TEXT UNIQUE,
   password TEXT
-  
+)
+''');
+
+await db.execute('''
+CREATE TABLE questionnaire_detail (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT,
+  date TEXT,
+  score INTEGER,
+  detail TEXT
 )
 ''');
 
@@ -51,15 +73,17 @@ CREATE TABLE checkin (
 )
 ''');
 
-    await db.execute('''
+   await db.execute('''
 CREATE TABLE mood (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT,
   date TEXT,
   score INTEGER,
+  note TEXT, -- 🔥 TAMBAHKAN INI
   UNIQUE(email, date)
 )
 ''');
+
 
     await db.execute('''
 CREATE TABLE reflection (
@@ -125,6 +149,17 @@ CREATE TABLE IF NOT EXISTS checkin (
   /// 🔥 TAMBAHKAN INI
   if (oldVersion < 5) {
     await db.execute('ALTER TABLE mood ADD COLUMN note TEXT');
+  }
+    if (oldVersion < 6) {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS questionnaire_detail (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT,
+  date TEXT,
+  score INTEGER,
+  detail TEXT
+)
+''');
   }
 }
 
@@ -228,6 +263,19 @@ CREATE TABLE IF NOT EXISTS checkin (
       orderBy: 'date DESC',
     );
   }
+  Future<List<Map<String, dynamic>>> getQuestionnaireDetail(
+  String email,
+  String date,
+) async {
+  final db = await database;
+
+  return await db.query(
+    'questionnaire_detail',
+    where: 'email = ? AND date = ?',
+    whereArgs: [email, date],
+    limit: 1,
+  );
+}
 
   Future<List<Map<String, dynamic>>> getLast7Mood(String email) async {
     final db = await database;
@@ -547,6 +595,41 @@ Future<bool> hasTodayPoint(String email, String date) async {
   
 
   return List.generate(result.length, (index) => 50);
+}
+// ================= AMBIL SCORE TEST TERAKHIR =================
+Future<int?> getLastTestScore(String email) async {
+  final db = await database;
+
+  final result = await db.query(
+    'mood',
+    where: 'email = ? AND date LIKE ?',
+    whereArgs: [email, '%_questionnaire'],
+    orderBy: 'date DESC',
+    limit: 1,
+  );
+
+  if (result.isEmpty) return null;
+
+  return result.first['score'] as int;
+}
+Future<void> insertQuestionnaireDetail(
+  String email,
+  String date,
+  int score,
+  String detailJson,
+) async {
+  final db = await database;
+
+  await db.insert(
+    'questionnaire_detail',
+    {
+      'email': email,
+      'date': date,
+      'score': score,
+      'detail': detailJson,
+    },
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
 }
 }
 
